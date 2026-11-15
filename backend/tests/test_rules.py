@@ -70,3 +70,24 @@ def test_letterbox_shape_and_scale():
     assert tensor.shape == (1, 3, 640, 640)
     assert scale == 0.5
     assert pad == (0, 160)
+
+
+def test_catalog_from_trained_model():
+    from app.fruits import build_catalog
+
+    names = {0: "banana_verde", 1: "banana_maduro", 2: "tomate_maduro", 3: "outra_coisa"}
+    catalog = build_catalog(names)
+    assert catalog["banana"].class_ids == {0, 1}
+    assert catalog["banana"].stage_by_class == {0: "verde", 1: "maduro"}
+    assert catalog["banana"].ripeness_source == "modelo"
+    assert catalog["tomate"].available
+    assert not catalog["laranja"].available
+
+
+def test_catalog_from_coco_model():
+    from app.fruits import build_catalog
+
+    catalog = build_catalog({46: "banana", 49: "orange"})
+    assert catalog["banana"].class_ids == {46}
+    assert catalog["banana"].ripeness_source == "cor"
+    assert not catalog["tomate"].available

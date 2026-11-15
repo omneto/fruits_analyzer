@@ -81,13 +81,17 @@ def analyze(
     tiled: bool = False,
 ) -> dict:
     start = time.perf_counter()
-    detections = detector.detect(image, {fruit.class_id}, conf=conf, iou=iou, tiled=tiled)
+    detections = detector.detect(image, set(fruit.class_ids), conf=conf, iou=iou, tiled=tiled)
     boxes = [(d.x1, d.y1, d.x2, d.y2) for d in detections]
     sizes = classify_sizes(boxes)
 
     items = []
     for n, (det, size) in enumerate(zip(detections, sizes), start=1):
         rip = classify_ripeness(center_crop(image, (det.x1, det.y1, det.x2, det.y2)), fruit)
+        if fruit.stage_by_class:
+            # O modelo treinado já diz o estágio; a cor fica só como informação.
+            rip.stage = fruit.stage_by_class[det.class_id]
+            rip.index = None
         items.append(
             {
                 "id": n,
@@ -112,6 +116,7 @@ def analyze(
         "detections": items,
         "image": {"width": image.size[0], "height": image.size[1]},
         "tiled": tiled,
+        "ripeness_source": fruit.ripeness_source,
         "processing_ms": round((time.perf_counter() - start) * 1000),
         "annotated_image": "data:image/jpeg;base64," + encode_jpeg(annotated),
     }

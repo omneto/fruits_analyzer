@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from .analyzer import InvalidImage, analyze, load_image
 from .config import settings
 from .detector import YoloOnnxDetector
-from .fruits import FRUITS
+from .fruits import Fruit, build_catalog
 
 # Uma análise por vez: a VPS tem 1 vCPU e 2 GB de RAM.
 _analysis_lock = asyncio.Lock()
@@ -22,6 +22,11 @@ _analysis_lock = asyncio.Lock()
 @lru_cache(maxsize=1)
 def get_detector() -> YoloOnnxDetector:
     return YoloOnnxDetector(settings.model_path, threads=settings.onnx_threads)
+
+
+@lru_cache(maxsize=1)
+def get_catalog() -> dict[str, Fruit]:
+    return build_catalog(get_detector().names)
 
 
 @asynccontextmanager
@@ -40,7 +45,10 @@ def health() -> dict:
 
 @app.get("/api/fruits")
 def list_fruits() -> list[dict]:
-    return [{"key": f.key, "label": f.label, "available": f.available} for f in FRUITS.values()]
+    return [
+        {"key": f.key, "label": f.label, "available": f.available, "ripeness_source": f.ripeness_source}
+        for f in get_catalog().values()
+    ]
 
 
 @app.post("/api/analyze")
@@ -49,11 +57,11 @@ async def analyze_image(
     fruit: str = Form("banana"),
     tiled: bool = Form(False),
 ) -> dict:
-    selected = FRUITS.get(fruit)
+    selected = get_catalog().get(fruit)
     if selected is None:
         raise HTTPException(400, f"Fruta desconhecida: {fruit}")
     if not selected.available:
-        raise HTTPException(400, f"{selected.label} ainda não está disponível (depende do modelo treinado).")
+        raise HTTPException(400, f"{selected.label} não está disponível no modelo carregado.")
 
     limit = settings.max_upload_mb * 1024 * 1024
     data = await file.read(limit + 1)

@@ -1,0 +1,7 @@
+# Só para treino (Colab ou máquina com GPU). Não vai para a VPS.
+ultralytics>=8.3
+roboflow>=1.1
+pyyaml>=6
+onnx>=1.16
+onnxslim>=0.1
+onnxruntime>=1.18
