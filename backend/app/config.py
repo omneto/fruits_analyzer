@@ -17,9 +17,15 @@ def _env_int(name: str, default: int) -> int:
     return int(os.getenv(name, default))
 
 
+def _default_model() -> Path:
+    """Usa o modelo treinado (etapa 2) se existir; senão, o COCO pré-treinado."""
+    trained = ROOT_DIR / "models" / "frutas_yolo11n.onnx"
+    return trained if trained.exists() else ROOT_DIR / "models" / "coco_yolo11n.onnx"
+
+
 @dataclass(frozen=True)
 class Settings:
-    model_path: Path = Path(os.getenv("MODEL_PATH", ROOT_DIR / "models" / "coco_yolo11n.onnx"))
+    model_path: Path = Path(os.getenv("MODEL_PATH", _default_model()))
     frontend_dir: Path = Path(os.getenv("FRONTEND_DIR", ROOT_DIR / "frontend"))
     # Limiar de confiança mínimo de uma detecção.
     conf_threshold: float = _env_float("CONF_THRESHOLD", 0.25)

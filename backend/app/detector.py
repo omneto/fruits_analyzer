@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 from dataclasses import dataclass
 
 import numpy as np
@@ -73,6 +74,17 @@ class YoloOnnxDetector:
         inp = self.session.get_inputs()[0]
         self.input_name = inp.name
         self.input_size = int(inp.shape[2]) if isinstance(inp.shape[2], int) else 640
+        self.names = self._read_names()
+
+    def _read_names(self) -> dict[int, str]:
+        """Nomes das classes gravados pela Ultralytics nos metadados do ONNX."""
+        raw = self.session.get_modelmeta().custom_metadata_map.get("names")
+        if not raw:
+            return {}
+        try:
+            return {int(k): str(v) for k, v in ast.literal_eval(raw).items()}
+        except (ValueError, SyntaxError):
+            return {}
 
     def _infer(self, image: Image.Image, class_ids: set[int], conf: float):
         tensor, scale, (pad_x, pad_y) = letterbox(image, self.input_size)
@@ -137,16 +149,16 @@ class YoloOnnxDetector:
         scores = np.concatenate(all_scores) if all_scores else np.zeros(0)
         cls = np.concatenate(all_cls) if all_cls else np.zeros(0, dtype=int)
 
+        # NMS sem distinguir classes: o modelo treinado tem uma classe por
+        # estágio, e a mesma fruta não pode ser contada como "verde" e "madura".
         detections: list[Detection] = []
-        for c in np.unique(cls):
-            idx = np.where(cls == c)[0]
-            for k in nms(boxes[idx], scores[idx], iou):
-                b = boxes[idx[k]]
-                if b[2] - b[0] < 2 or b[3] - b[1] < 2:
-                    continue
-                detections.append(
-                    Detection(float(b[0]), float(b[1]), float(b[2]), float(b[3]), float(scores[idx[k]]), int(c))
-                )
+        for k in nms(boxes, scores, iou) if len(scores) else []:
+            b = boxes[k]
+            if b[2] - b[0] < 2 or b[3] - b[1] < 2:
+                continue
+            detections.append(
+                Detection(float(b[0]), float(b[1]), float(b[2]), float(b[3]), float(scores[k]), int(cls[k]))
+            )
         detections.sort(key=lambda d: (d.y1, d.x1))
         return detections
 

@@ -71,6 +71,8 @@ function renderResult(card, data) {
   card.querySelector(".r-total").innerHTML =
     `<strong>${data.total}</strong> ${data.fruit_label.toLowerCase()}(s) encontrada(s)`;
 
+  card.querySelector(".r-rip-title").textContent =
+    data.ripeness_source === "modelo" ? "Maturação (modelo treinado)" : "Maturação (regras de cor)";
   const rip = card.querySelector(".r-ripeness");
   for (const [key, label] of STAGES) {
     if (key === "indefinido" && !data.by_ripeness[key]) continue;
