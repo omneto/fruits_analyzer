@@ -1,0 +1,16 @@
+services:
+  fruits-analyzer:
+    build: .
+    image: fruits-analyzer:latest
+    container_name: fruits-analyzer
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      ONNX_THREADS: "1"
+      MAX_IMAGE_SIDE: "2048"
+      MAX_UPLOAD_MB: "20"
+      CONF_THRESHOLD: "0.25"
+    # Limite para não derrubar a VPS de 2 GB.
+    mem_limit: 1g
+    cpus: "1.0"

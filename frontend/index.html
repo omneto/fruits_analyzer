@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analisador de Frutas</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <h1>Analisador de Frutas</h1>
+    <p class="subtitle">Conte as frutas de uma foto e veja a maturação e o tamanho de cada uma.</p>
+  </header>
+
+  <main>
+    <form id="form" class="card">
+      <label class="field">
+        <span>Fruta</span>
+        <select id="fruit" name="fruit"></select>
+      </label>
+
+      <label class="dropzone" id="dropzone">
+        <input id="files" type="file" accept="image/*" multiple>
+        <span class="dz-title">Toque para escolher ou tirar fotos</span>
+        <span class="dz-hint">ou arraste as imagens para cá (JPG, PNG, até 20 MB)</span>
+      </label>
+      <div id="selected" class="selected"></div>
+
+      <label class="check">
+        <input id="tiled" type="checkbox">
+        <span>Modo detalhado: procura frutas pequenas em fotos de árvore ou drone (mais lento)</span>
+      </label>
+
+      <button id="submit" type="submit" disabled>Analisar</button>
+    </form>
+
+    <section id="results"></section>
+  </main>
+
+  <template id="result-template">
+    <article class="card result">
+      <h2 class="r-title"></h2>
+      <div class="r-body">
+        <img class="r-image" alt="Imagem com as frutas marcadas">
+        <div class="r-stats">
+          <p class="r-total"></p>
+          <h3>Maturação (cor)</h3>
+          <ul class="r-ripeness chips"></ul>
+          <h3>Tamanho (relativo à foto)</h3>
+          <ul class="r-size chips"></ul>
+          <details>
+            <summary>Ver cada fruta</summary>
+            <table class="r-table">
+              <thead><tr><th>#</th><th>Maturação</th><th>Tamanho</th><th>Confiança</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </details>
+          <p class="r-meta"></p>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <footer>Protótipo. A maturação usa regras de cor e o tamanho é comparado com as outras frutas da mesma foto.</footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
