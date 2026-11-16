@@ -149,7 +149,20 @@ for name in ["confusion_matrix_normalized.png", "val_batch0_pred.jpg"]:
     md("## 4. Exportar para ONNX (para a VPS)"),
     code(
         """import shutil
+from pathlib import Path
+
 import onnx
+from ultralytics import YOLO
+
+# Funciona mesmo depois de reiniciar a sessão: procura o best.pt salvo em disco.
+if "best" not in globals():
+    found = sorted(Path.cwd().parent.glob("**/frutas/weights/best.pt")) or sorted(Path.cwd().glob("**/frutas/weights/best.pt"))
+    if not found:
+        raise FileNotFoundError("Nenhum best.pt encontrado: rode o treino (seção 2) antes de exportar.")
+    BEST = found[-1]
+    print("Usando", BEST)
+    best = YOLO(str(BEST))
+IMGSZ = globals().get("IMGSZ", 640)
 
 onnx_path = best.export(format="onnx", imgsz=IMGSZ, simplify=True, opset=17)
 MODEL_OUT = Path("models/frutas_yolo11n.onnx")
@@ -162,9 +175,11 @@ print("Classes gravadas no modelo:", meta.get("names"))
 print(f"Arquivo: {MODEL_OUT} ({MODEL_OUT.stat().st_size / 1e6:.1f} MB)")"""
     ),
     code(
-        """if IN_COLAB:
+        """import sys
+
+if "google.colab" in sys.modules:
     from google.colab import files
-    if SAVE_TO_DRIVE:
+    if globals().get("SAVE_TO_DRIVE"):
         from google.colab import drive
         drive.mount("/content/drive")
         dest = Path("/content/drive/MyDrive/fruits_analyzer")
