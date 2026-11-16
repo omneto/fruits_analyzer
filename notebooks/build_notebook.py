@@ -48,7 +48,7 @@ from pathlib import Path
 IN_COLAB = "google.colab" in sys.modules
 if IN_COLAB:
     !nvidia-smi -L
-    !pip install -q ultralytics roboflow onnx onnxslim onnxruntime
+    !pip install -q ultralytics roboflow onnx onnxslim
     if not Path("/content/fruits_analyzer").exists():
         !git clone -q https://github.com/omneto/fruits_analyzer.git /content/fruits_analyzer
     %cd /content/fruits_analyzer
@@ -149,15 +149,16 @@ for name in ["confusion_matrix_normalized.png", "val_batch0_pred.jpg"]:
     md("## 4. Exportar para ONNX (para a VPS)"),
     code(
         """import shutil
-import onnxruntime as ort
+import onnx
 
 onnx_path = best.export(format="onnx", imgsz=IMGSZ, simplify=True, opset=17)
 MODEL_OUT = Path("models/frutas_yolo11n.onnx")
 MODEL_OUT.parent.mkdir(exist_ok=True)
 shutil.copy(onnx_path, MODEL_OUT)
 
-meta = ort.InferenceSession(str(MODEL_OUT)).get_modelmeta().custom_metadata_map
-print("Classes gravadas no modelo:", meta["names"])
+# Confere as classes gravadas no arquivo (só com o pacote onnx, sem onnxruntime).
+meta = {p.key: p.value for p in onnx.load(str(MODEL_OUT)).metadata_props}
+print("Classes gravadas no modelo:", meta.get("names"))
 print(f"Arquivo: {MODEL_OUT} ({MODEL_OUT.stat().st_size / 1e6:.1f} MB)")"""
     ),
     code(
