@@ -21,7 +21,9 @@ No fim, ele gera o arquivo `frutas_yolo11n.onnx`, que a app usa na VPS sem GPU.
    (*Settings > API Keys*).
 3. No Colab, abra o ícone de chave (**Secrets**) na barra lateral, crie o segredo
    `ROBOFLOW_API_KEY` com a chave e ative o acesso para este notebook.
-4. *Ambiente de execução > Executar tudo*.
+4. *Ambiente de execução > Executar tudo*. Autorize o acesso ao Google Drive quando pedir: o
+   treino é salvo lá e, se o Colab desconectar, basta executar tudo de novo que ele continua de
+   onde parou.
 
 O treino completo leva cerca de 1 a 2 horas na T4, dependendo do tamanho dos datasets.
 
@@ -39,7 +41,7 @@ PATIENCE = 20
 IMGSZ = 320 if SMOKE_TEST else 640
 BATCH = 4 if SMOKE_TEST else 16
 BASE_MODEL = "yolo11n.pt"           # nano: o único que roda bem na VPS de 1 vCPU
-SAVE_TO_DRIVE = False               # True para salvar uma cópia no Google Drive"""
+SAVE_TO_DRIVE = True                # salva o treino no Google Drive: sobrevive a desconexões do Colab"""
     ),
     code(
         """import sys
@@ -58,6 +60,14 @@ sys.path.insert(0, str(Path.cwd()))
 from training.datasets import CLASS_NAMES, DEFAULT_SOURCES, download_roboflow, merge_datasets, read_class_names, stats_table
 
 WORK_DIR = Path("/content/work") if IN_COLAB else Path("work")
+# Pasta dos resultados do treino. No Drive, ela sobrevive se o Colab desconectar.
+RUNS = (WORK_DIR / "runs").resolve()  # caminho absoluto: a Ultralytics muda caminhos relativos
+if IN_COLAB and SAVE_TO_DRIVE:
+    from google.colab import drive
+    drive.mount("/content/drive")
+    RUNS = Path("/content/drive/MyDrive/fruits_analyzer/runs")
+RUNS.mkdir(parents=True, exist_ok=True)
+print("Resultados do treino em:", RUNS)
 print("Classes do modelo:", CLASS_NAMES)"""
     ),
     md(
@@ -113,20 +123,26 @@ A laranja, por exemplo, só tem "verde" e "maduro" no dataset padrão."""
     code(
         """from ultralytics import YOLO
 
-RUNS = (WORK_DIR / "runs").resolve()  # caminho absoluto: a Ultralytics muda caminhos relativos
-model = YOLO(BASE_MODEL)
-model.train(
-    data=stats["data_yaml"],
-    epochs=EPOCHS,
-    patience=PATIENCE,
-    imgsz=IMGSZ,
-    batch=BATCH,
-    project=str(RUNS),
-    name="frutas",
-    exist_ok=True,
-    workers=0 if SMOKE_TEST else 2,
-    plots=not SMOKE_TEST,
-)
+LAST = RUNS / "frutas" / "weights" / "last.pt"
+if LAST.exists() and not SMOKE_TEST:
+    # Um treino anterior foi interrompido (ex.: o Colab desconectou): continua de onde parou.
+    print("Retomando o treino de", LAST)
+    model = YOLO(str(LAST))
+    model.train(resume=True)
+else:
+    model = YOLO(BASE_MODEL)
+    model.train(
+        data=stats["data_yaml"],
+        epochs=EPOCHS,
+        patience=PATIENCE,
+        imgsz=IMGSZ,
+        batch=BATCH,
+        project=str(RUNS),
+        name="frutas",
+        exist_ok=True,
+        workers=0 if SMOKE_TEST else 2,
+        plots=not SMOKE_TEST,
+    )
 BEST = Path(model.trainer.best)
 print("Melhor modelo:", BEST)"""
     ),
@@ -156,7 +172,8 @@ from ultralytics import YOLO
 
 # Funciona mesmo depois de reiniciar a sessão: procura o best.pt salvo em disco.
 if "best" not in globals():
-    found = sorted(Path.cwd().parent.glob("**/frutas/weights/best.pt")) or sorted(Path.cwd().glob("**/frutas/weights/best.pt"))
+    places = [Path("/content/drive/MyDrive/fruits_analyzer/runs"), Path("/content/work/runs"), Path("work/runs")]
+    found = [p / "frutas/weights/best.pt" for p in places if (p / "frutas/weights/best.pt").exists()]
     if not found:
         raise FileNotFoundError("Nenhum best.pt encontrado: rode o treino (seção 2) antes de exportar.")
     BEST = found[-1]
@@ -179,13 +196,10 @@ print(f"Arquivo: {MODEL_OUT} ({MODEL_OUT.stat().st_size / 1e6:.1f} MB)")"""
 
 if "google.colab" in sys.modules:
     from google.colab import files
-    if globals().get("SAVE_TO_DRIVE"):
-        from google.colab import drive
-        drive.mount("/content/drive")
-        dest = Path("/content/drive/MyDrive/fruits_analyzer")
-        dest.mkdir(parents=True, exist_ok=True)
-        shutil.copy(MODEL_OUT, dest)
-        shutil.copy(BEST, dest / "frutas_yolo11n.pt")
+    drive_dir = Path("/content/drive/MyDrive/fruits_analyzer")
+    if drive_dir.exists():
+        shutil.copy(MODEL_OUT, drive_dir)
+        print("Cópia salva no Drive:", drive_dir / MODEL_OUT.name)
     files.download(str(MODEL_OUT))"""
     ),
     md(
@@ -196,7 +210,7 @@ na VPS. A app detecta o modelo treinado, libera o tomate e passa a mostrar
 "Maturação (modelo treinado)". Para voltar ao modelo antigo, apague o arquivo ou defina
 `MODEL_PATH=/app/models/coco_yolo11n.onnx`.
 
-Guarde também o `best.pt` (opção `SAVE_TO_DRIVE`): ele permite continuar o treino depois com
+O `best.pt` fica no Drive em `fruits_analyzer/runs/frutas/weights/`. Ele permite continuar o treino depois com
 mais fotos, inclusive fotos suas anotadas no Roboflow."""
     ),
 ]
