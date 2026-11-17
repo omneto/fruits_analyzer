@@ -4,7 +4,6 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    MODEL_PATH=/app/models/coco_yolo11n.onnx \
     FRONTEND_DIR=/app/frontend
 
 WORKDIR /app
@@ -14,6 +13,8 @@ RUN pip install -r backend/requirements.txt
 COPY backend/app backend/app
 COPY frontend frontend
 COPY models models
+# Garante leitura dos modelos mesmo se o arquivo foi copiado com permissão restrita.
+RUN chmod -R a+rX /app/models
 
 RUN useradd --create-home --uid 1000 app
 USER app
