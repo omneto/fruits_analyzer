@@ -25,13 +25,37 @@ def get_detector() -> YoloOnnxDetector:
 
 
 @lru_cache(maxsize=1)
+def get_coco_detector() -> YoloOnnxDetector | None:
+    path = settings.coco_model_path
+    if not path.exists() or path.resolve() == settings.model_path.resolve():
+        return None
+    return YoloOnnxDetector(path, threads=settings.onnx_threads)
+
+
+@lru_cache(maxsize=1)
+def get_routes() -> dict[str, tuple[Fruit, YoloOnnxDetector]]:
+    """Para cada fruta, a definição e o modelo que vai analisá-la.
+
+    Usa o modelo principal. Frutas listadas em ``COCO_FRUITS``, ou que o modelo
+    principal não conhece, vão para o modelo COCO com regras de cor.
+    """
+    main_det = get_detector()
+    routes = {k: (f, main_det) for k, f in build_catalog(main_det.names).items()}
+    coco = get_coco_detector()
+    if coco is not None:
+        for key, fruit in build_catalog(coco.names).items():
+            if fruit.available and (key in settings.coco_fruits or not routes[key][0].available):
+                routes[key] = (fruit, coco)
+    return routes
+
+
 def get_catalog() -> dict[str, Fruit]:
-    return build_catalog(get_detector().names)
+    return {k: f for k, (f, _) in get_routes().items()}
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    get_detector()  # carrega o modelo uma vez, na inicialização
+    get_routes()  # carrega os modelos uma vez, na inicialização
     yield
 
 
@@ -57,9 +81,10 @@ async def analyze_image(
     fruit: str = Form("banana"),
     tiled: bool = Form(False),
 ) -> dict:
-    selected = get_catalog().get(fruit)
-    if selected is None:
+    route = get_routes().get(fruit)
+    if route is None:
         raise HTTPException(400, f"Fruta desconhecida: {fruit}")
+    selected, detector = route
     if not selected.available:
         raise HTTPException(400, f"{selected.label} não está disponível no modelo carregado.")
 
@@ -77,7 +102,7 @@ async def analyze_image(
             analyze,
             image,
             selected,
-            get_detector(),
+            detector,
             settings.conf_threshold,
             settings.iou_threshold,
             tiled,

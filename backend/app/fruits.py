@@ -44,7 +44,8 @@ class Fruit:
 
 FRUIT_INFO = {
     "banana": ("Banana", {"green": 0, "yellow": 2, "orange": 2, "brown": 3}),
-    "laranja": ("Laranja", {"green": 0, "yellow": 1, "orange": 2, "red": 2, "brown": 3}),
+    # Laranja madura pode ser amarelada (ex.: pera, valência): amarelo puro já conta como maduro.
+    "laranja": ("Laranja", {"green": 0, "yellow": 1.7, "orange": 2, "red": 2, "brown": 3}),
     "tomate": ("Tomate", {"green": 0, "yellow": 1, "orange": 1, "red": 2, "brown": 3}),
 }
 
