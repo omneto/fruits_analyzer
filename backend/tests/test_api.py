@@ -85,3 +85,11 @@ def test_routes_mix_trained_and_coco(monkeypatch):
     finally:
         for fn in (main.get_detector, main.get_coco_detector, main.get_routes):
             fn.cache_clear()
+
+
+def test_report_has_color_comparison(client):
+    img = Image.new("RGB", (64, 64))
+    body = client.post(
+        "/api/analyze", files={"file": ("a.png", png_bytes(img), "image/png")}, data={"fruit": "banana"}
+    ).json()
+    assert set(body["by_ripeness_color"]) == set(body["by_ripeness"])

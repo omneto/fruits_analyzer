@@ -78,14 +78,28 @@ function renderResult(card, data) {
     if (key === "indefinido" && !data.by_ripeness[key]) continue;
     rip.appendChild(chip(label, data.by_ripeness[key] || 0, `st-${key}`));
   }
+  const byModel = data.ripeness_source === "modelo";
+  if (byModel) {
+    card.querySelector(".r-rip-color-title").hidden = false;
+    card.querySelector("th.col-color").hidden = false;
+    const ripColor = card.querySelector(".r-ripeness-color");
+    ripColor.hidden = false;
+    for (const [key, label] of STAGES) {
+      if (key === "indefinido" && !data.by_ripeness_color[key]) continue;
+      ripColor.appendChild(chip(label, data.by_ripeness_color[key] || 0, `st-${key}`));
+    }
+  }
   const size = card.querySelector(".r-size");
   for (const [key, label] of SIZES) size.appendChild(chip(label, data.by_size[key] || 0));
 
   const tbody = card.querySelector("tbody");
   for (const d of data.detections) {
     const tr = document.createElement("tr");
+    const colorCell = byModel
+      ? `<td><span class="dot st-${d.ripeness_color}"></span>${d.ripeness_color}</td>`
+      : "";
     tr.innerHTML = `<td>${d.id}</td><td><span class="dot st-${d.ripeness}"></span>${d.ripeness}</td>` +
-      `<td>${d.size}</td><td>${Math.round(d.confidence * 100)}%</td>`;
+      colorCell + `<td>${d.size}</td><td>${Math.round(d.confidence * 100)}%</td>`;
     tbody.appendChild(tr);
   }
   if (!data.detections.length) card.querySelector("details").remove();
