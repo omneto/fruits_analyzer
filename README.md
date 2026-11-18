@@ -19,6 +19,11 @@ A app escolhe o modelo sozinha ao iniciar:
 O modelo treinado é usado quando o arquivo existe. Para forçar outro, defina
 `MODEL_PATH`.
 
+**Exceção: a laranja usa o modelo COCO** (variável `COCO_FRUITS`, padrão
+`laranja`). O dataset de laranja do treino só tem fotos de uma fruta em close,
+e o modelo treinado não encontrou nenhuma laranja em fotos reais de laranjeira.
+O COCO encontrou. Para voltar ao treinado, defina `COCO_FRUITS=""`.
+
 - **Contagem:** YOLO11n exportado para ONNX (cerca de 10 MB). Roda só com
   ONNX Runtime, sem PyTorch.
 - **Maturação:** com o modelo treinado, cada fruta já vem classificada. Com o
@@ -62,7 +67,10 @@ Para editar o notebook, altere `notebooks/build_notebook.py` e rode-o.
   suas.
 - Os datasets padrão têm poucas fotos de árvore inteira e de drone. Para esse
   uso, vale anotar algumas fotos próprias no Roboflow e incluí-las no treino.
-- O dataset de laranja só tem "verde" e "maduro".
+- O dataset de laranja só tem "verde" e "maduro" e não tem fotos de
+  laranjeira. Por isso a laranja usa o modelo COCO (ver "Modelos").
+- O tomate do modelo treinado deixa de encontrar cerca de 1 em cada 3 tomates
+  na validação (recall ~0,66), principalmente os verdes.
 
 ## Rodar com Docker
 

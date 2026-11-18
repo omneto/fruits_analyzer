@@ -36,6 +36,13 @@ class Settings:
     max_upload_mb: int = _env_int("MAX_UPLOAD_MB", 20)
     # Threads do ONNX Runtime. Na VPS de 1 vCPU, 1 é o ideal.
     onnx_threads: int = _env_int("ONNX_THREADS", 1)
+    # Frutas que usam o modelo COCO (com regras de cor) mesmo havendo modelo
+    # treinado. A laranja do modelo treinado só viu fotos de uma fruta em
+    # close e não encontra laranjas no pé; o COCO encontra.
+    coco_model_path: Path = Path(os.getenv("COCO_MODEL_PATH", ROOT_DIR / "models" / "coco_yolo11n.onnx"))
+    coco_fruits: tuple[str, ...] = tuple(
+        f.strip() for f in os.getenv("COCO_FRUITS", "laranja").split(",") if f.strip()
+    )
 
 
 settings = Settings()

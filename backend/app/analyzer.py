@@ -88,8 +88,9 @@ def analyze(
     items = []
     for n, (det, size) in enumerate(zip(detections, sizes), start=1):
         rip = classify_ripeness(center_crop(image, (det.x1, det.y1, det.x2, det.y2)), fruit)
+        color_stage = rip.stage
         if fruit.stage_by_class:
-            # O modelo treinado já diz o estágio; a cor fica só como informação.
+            # O modelo treinado diz o estágio; o estágio pela cor vai junto para comparação.
             rip.stage = fruit.stage_by_class[det.class_id]
             rip.index = None
         items.append(
@@ -99,12 +100,14 @@ def analyze(
                 "confidence": round(det.confidence, 3),
                 "ripeness": rip.stage,
                 "ripeness_index": rip.index,
+                "ripeness_color": color_stage,
                 "size": size,
                 "colors": {k: round(v, 3) for k, v in rip.color_fractions.items()},
             }
         )
 
     by_ripeness = Counter(i["ripeness"] for i in items)
+    by_ripeness_color = Counter(i["ripeness_color"] for i in items)
     by_size = Counter(i["size"] for i in items)
     annotated = draw_annotations(image, items)
     return {
@@ -112,6 +115,8 @@ def analyze(
         "fruit_label": fruit.label,
         "total": len(items),
         "by_ripeness": {s: by_ripeness.get(s, 0) for s in [*STAGES, "indefinido"]},
+        # Mesma contagem pelas regras de cor (igual a by_ripeness quando a fonte é "cor").
+        "by_ripeness_color": {s: by_ripeness_color.get(s, 0) for s in [*STAGES, "indefinido"]},
         "by_size": {s: by_size.get(s, 0) for s in SIZES},
         "detections": items,
         "image": {"width": image.size[0], "height": image.size[1]},

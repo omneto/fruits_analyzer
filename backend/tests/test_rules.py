@@ -91,3 +91,8 @@ def test_catalog_from_coco_model():
     assert catalog["banana"].class_ids == {46}
     assert catalog["banana"].ripeness_source == "cor"
     assert not catalog["tomate"].available
+
+
+def test_yellowish_orange_is_ripe():
+    assert classify_ripeness(solid(YELLOW), FRUITS["laranja"]).stage == "maduro"
+    assert classify_ripeness(mixed([GREEN, YELLOW]), FRUITS["laranja"]).stage == "amadurecendo"

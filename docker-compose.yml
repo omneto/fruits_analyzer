@@ -11,6 +11,8 @@ services:
       MAX_IMAGE_SIDE: "2048"
       MAX_UPLOAD_MB: "20"
       CONF_THRESHOLD: "0.25"
+      # Frutas analisadas pelo modelo COCO (regras de cor) em vez do treinado.
+      COCO_FRUITS: "laranja"
     # Limite para não derrubar a VPS de 2 GB.
     mem_limit: 1g
     cpus: "1.0"
